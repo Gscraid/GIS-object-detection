@@ -8,7 +8,7 @@ python -m pip install -r requirements.txt
 В каталоге images размещаются изображения для обучения,а в каталоге annotations - 
 разметка к этим изображениям. Разметка осуществляется при помощи сайта cvat.ai в формате COCO.
 
-Для обучения нейросети нужно воспользоваться либо скриптом train.py либо ноутбуком Train_and_inference.ipynb.
+Для обучения нейросети нужно воспользоваться скриптом train.py:
 
 python train.py --classes 35 --epochs 100
 
