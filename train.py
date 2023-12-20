@@ -87,52 +87,61 @@ def create_model(num_classes, pretrained=False):
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     return model
 
-train_data_dir = 'images'
-train_coco = 'annotations/instances_default.json'
 
-# create own Dataset
-my_dataset = myOwnDataset(root=train_data_dir,
-                          annotation=train_coco,
-                          transforms=get_transform()
-                          )
-# Batch size
-train_batch_size = 2
+if __name__ == "__main__":
+    import argparse
 
-# own DataLoader
-data_loader = torch.utils.data.DataLoader(my_dataset,
-                                          batch_size=train_batch_size,
-                                          shuffle=True,
-                                          collate_fn=collate_fn)
+    parser = argparse.ArgumentParser(description='Параметры для запуска приложения по обнаружению объектов')
+    parser.add_argument("-c", "--classes", type=int, required=True)
+    parser.add_argument("-e", "--epochs", type=int, required=True)
 
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    args = parser.parse_args()
+    train_data_dir = 'images'
+    train_coco = 'annotations/instances_default.json'
 
-# 35 classes; Only target class or background
-num_classes = 36
-num_epochs = 1000
-model = create_model(num_classes)
-model.to(device)
+    # create own Dataset
+    my_dataset = myOwnDataset(root=train_data_dir,
+                              annotation=train_coco,
+                              transforms=get_transform()
+                              )
+    # Batch size
+    train_batch_size = 2
 
-# parameters
-params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.Adam(params, lr=0.0001)
+    # own DataLoader
+    data_loader = torch.utils.data.DataLoader(my_dataset,
+                                              batch_size=train_batch_size,
+                                              shuffle=True,
+                                              collate_fn=collate_fn)
 
-len_dataloader = len(data_loader)
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-for epoch in range(num_epochs):
-    model.train()
-    i = 0
-    loss = []
-    for imgs, annotations in data_loader:
-        i += 1
-        imgs = list(img.to(device) for img in imgs)
-        annotations = [{k: v.to(device) for k, v in t.items()} for t in annotations]
-        loss_dict = model(imgs, annotations)
-        losses = sum(loss for loss in loss_dict.values())
-        loss.append(losses.cpu().detach().numpy())
-        optimizer.zero_grad()
-        losses.backward()
-        optimizer.step()
-    loss = np.array(loss).mean()
-    if epoch % 100 == 0:
-      torch.save(model.state_dict(), f'models/epoch_{epoch}_{loss}.pth')
-    print(f'Iteration: {i}/{len_dataloader}, Loss: {losses}, mean_loss: {loss}')
+    # 35 classes; Only target class or background
+    num_classes = args.classes + 1
+    num_epochs = args.epochs
+    model = create_model(num_classes)
+    model.to(device)
+
+    # parameters
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.Adam(params, lr=0.0001)
+
+    len_dataloader = len(data_loader)
+
+    for epoch in range(num_epochs):
+        model.train()
+        i = 0
+        loss = []
+        for imgs, annotations in data_loader:
+            i += 1
+            imgs = list(img.to(device) for img in imgs)
+            annotations = [{k: v.to(device) for k, v in t.items()} for t in annotations]
+            loss_dict = model(imgs, annotations)
+            losses = sum(loss for loss in loss_dict.values())
+            loss.append(losses.cpu().detach().numpy())
+            optimizer.zero_grad()
+            losses.backward()
+            optimizer.step()
+        loss = np.array(loss).mean()
+        if epoch % int(num_epochs / 10) == 0:
+          torch.save(model.state_dict(), f'models/epoch_{epoch}_{loss}.pth')
+        print(f'Iteration: {i}/{len_dataloader}, Loss: {losses}, mean_loss: {loss}')

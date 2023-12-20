@@ -10,6 +10,8 @@ python -m pip install -r requirements.txt
 
 Для обучения нейросети нужно воспользоваться либо скриптом train.py либо ноутбуком Train_and_inference.ipynb.
 
+python train.py --classes 35 --epochs 100
+
 В результате обучения модель разместиться в каталоге models.
 
 Для запуска приложения нужно ввести в командную строку:
